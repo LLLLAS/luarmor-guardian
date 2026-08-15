@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 const Navbar = () => {
   const navLinks = [
     { label: "Docs", href: "#" },
-    { label: "Dashboard", href: "#" },
+    { label: "Dashboard", href: "/dashboard" },
     { label: "Discord", href: "#" },
     { label: "F.A.Q", href: "#" },
     { label: "Pricing", href: "#pricing" },
