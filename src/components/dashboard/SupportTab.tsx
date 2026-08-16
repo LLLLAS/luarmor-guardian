@@ -1,156 +1,193 @@
-import { useState } from "react";
-import { LifeBuoy, MessageSquare, BookOpen } from "lucide-react";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
+import { z } from "zod";
+import { LifeBuoy, MessageSquare } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
-import { toast } from "sonner";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/context/AuthContext";
 
-const tickets = [
-  { id: "#2041", subject: "API key returns 403 on staging", status: "Answered", updated: "6h ago" },
-  { id: "#2032", subject: "Add second domain to Pro plan", status: "Open", updated: "1d ago" },
-  { id: "#1998", subject: "Invoice for July", status: "Closed", updated: "3w ago" },
-];
+type Ticket = { id: string; subject: string; priority: string; status: string; updated_at: string };
+type Message = { id: string; body: string; is_staff: boolean; created_at: string; author_id: string };
 
-const faqs = [
-  {
-    q: "How fast is attack mitigation?",
-    a: "Most L3/L4 attacks are absorbed at the edge within milliseconds. L7 attacks average 1.8 seconds to full mitigation.",
-  },
-  {
-    q: "Can I change plans at any time?",
-    a: "Yes. Upgrades apply instantly and downgrades take effect at the end of the current billing cycle.",
-  },
-  {
-    q: "Do you offer a status page?",
-    a: "Yes, live uptime and incident history are published at status.cat-service.com.",
-  },
-];
+const ticketSchema = z.object({
+  subject: z.string().trim().min(3, "Subject too short").max(120),
+  message: z.string().trim().min(5, "Message too short").max(2000),
+  priority: z.enum(["low", "normal", "high", "urgent"]),
+});
 
 const SupportTab = () => {
+  const { user } = useAuth();
+  const [tickets, setTickets] = useState<Ticket[]>([]);
+  const [selected, setSelected] = useState<Ticket | null>(null);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [subject, setSubject] = useState("");
-  const [message, setMessage] = useState("");
-  const [priority, setPriority] = useState("normal");
+  const [msg, setMsg] = useState("");
+  const [priority, setPriority] = useState<"low" | "normal" | "high" | "urgent">("normal");
+  const [reply, setReply] = useState("");
 
-  const submit = (e: React.FormEvent) => {
+  const loadTickets = async () => {
+    if (!user) return;
+    const { data } = await supabase
+      .from("tickets")
+      .select("id,subject,priority,status,updated_at")
+      .eq("user_id", user.id)
+      .order("updated_at", { ascending: false });
+    setTickets((data as Ticket[]) ?? []);
+  };
+  useEffect(() => {
+    loadTickets();
+  }, [user]);
+
+  const openTicket = async (t: Ticket) => {
+    setSelected(t);
+    const { data } = await supabase
+      .from("ticket_messages")
+      .select("*")
+      .eq("ticket_id", t.id)
+      .order("created_at");
+    setMessages((data as Message[]) ?? []);
+  };
+
+  const create = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!subject.trim() || !message.trim()) {
-      toast.error("Please fill in a subject and a message.");
+    if (!user) return;
+    const parsed = ticketSchema.safeParse({ subject, message: msg, priority });
+    if (!parsed.success) {
+      toast.error(parsed.error.issues[0].message);
       return;
     }
-    toast.success("Ticket submitted — our team replies within 2 hours.");
-    setSubject("");
-    setMessage("");
-    setPriority("normal");
+    const { data: ticket, error } = await supabase
+      .from("tickets")
+      .insert({ user_id: user.id, subject: parsed.data.subject, priority: parsed.data.priority })
+      .select()
+      .single();
+    if (error || !ticket) {
+      toast.error(error?.message ?? "Failed");
+      return;
+    }
+    const { error: mErr } = await supabase.from("ticket_messages").insert({
+      ticket_id: ticket.id,
+      author_id: user.id,
+      body: parsed.data.message,
+    });
+    if (mErr) toast.error(mErr.message);
+    else {
+      toast.success("Ticket submitted");
+      setSubject("");
+      setMsg("");
+      setPriority("normal");
+      loadTickets();
+    }
+  };
+
+  const sendReply = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user || !selected || !reply.trim()) return;
+    const { error } = await supabase.from("ticket_messages").insert({
+      ticket_id: selected.id,
+      author_id: user.id,
+      body: reply.trim(),
+    });
+    if (error) toast.error(error.message);
+    else {
+      setReply("");
+      openTicket(selected);
+    }
   };
 
   return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        {[
-          { icon: MessageSquare, title: "Live Chat", desc: "Avg. reply in 4 minutes" },
-          { icon: LifeBuoy, title: "Priority Support", desc: "Included with your Pro plan" },
-          { icon: BookOpen, title: "Documentation", desc: "Guides, API reference, SDKs" },
-        ].map((c) => (
-          <Card key={c.title} className="bg-gradient-card border-border p-5 shadow-card">
-            <c.icon className="w-5 h-5 text-primary mb-3" />
-            <p className="font-medium text-foreground">{c.title}</p>
-            <p className="text-sm text-muted-foreground">{c.desc}</p>
-          </Card>
-        ))}
-      </div>
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <Card className="bg-gradient-card border-border p-6 shadow-card">
+        <div className="flex items-center gap-3 mb-4">
+          <LifeBuoy className="w-5 h-5 text-primary" />
+          <h3 className="font-semibold text-foreground">Open a Ticket</h3>
+        </div>
+        <form onSubmit={create} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="subject">Subject</Label>
+            <Input id="subject" value={subject} onChange={(e) => setSubject(e.target.value)} />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="priority">Priority</Label>
+            <Select value={priority} onValueChange={(v) => setPriority(v as typeof priority)}>
+              <SelectTrigger id="priority">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="low">Low</SelectItem>
+                <SelectItem value="normal">Normal</SelectItem>
+                <SelectItem value="high">High</SelectItem>
+                <SelectItem value="urgent">Urgent</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="msg">Message</Label>
+            <Textarea id="msg" rows={5} value={msg} onChange={(e) => setMsg(e.target.value)} />
+          </div>
+          <Button type="submit" className="w-full">Submit Ticket</Button>
+        </form>
+      </Card>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card className="bg-gradient-card border-border p-6 shadow-card">
-          <h3 className="font-semibold text-foreground mb-4">Open a Ticket</h3>
-          <form onSubmit={submit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="subject">Subject</Label>
-              <Input
-                id="subject"
-                value={subject}
-                onChange={(e) => setSubject(e.target.value)}
-                placeholder="Short summary of the issue"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="priority">Priority</Label>
-              <Select value={priority} onValueChange={setPriority}>
-                <SelectTrigger id="priority">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="low">Low</SelectItem>
-                  <SelectItem value="normal">Normal</SelectItem>
-                  <SelectItem value="high">High</SelectItem>
-                  <SelectItem value="urgent">Urgent — service down</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="message">Message</Label>
-              <Textarea
-                id="message"
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
-                placeholder="Describe what happened, including any error codes"
-                rows={5}
-              />
-            </div>
-            <Button type="submit" className="w-full">Submit Ticket</Button>
-          </form>
-        </Card>
-
-        <div className="space-y-6">
-          <Card className="bg-gradient-card border-border p-6 shadow-card">
-            <h3 className="font-semibold text-foreground mb-4">Your Tickets</h3>
-            <ul className="space-y-3">
-              {tickets.map((t) => (
-                <li
-                  key={t.id}
-                  className="flex items-center justify-between gap-3 border-b border-border pb-3 last:border-0 last:pb-0"
+      <Card className="bg-gradient-card border-border p-6 shadow-card">
+        <div className="flex items-center gap-3 mb-4">
+          <MessageSquare className="w-5 h-5 text-primary" />
+          <h3 className="font-semibold text-foreground">{selected ? selected.subject : "Your Tickets"}</h3>
+        </div>
+        {!selected && (
+          <ul className="space-y-3">
+            {tickets.length === 0 && <p className="text-sm text-muted-foreground">No tickets yet.</p>}
+            {tickets.map((t) => (
+              <li key={t.id}>
+                <button
+                  onClick={() => openTicket(t)}
+                  className="w-full flex items-center justify-between gap-3 border-b border-border pb-3 text-left hover:bg-secondary/40 rounded-md px-2 py-2 transition-colors"
                 >
                   <div className="min-w-0">
-                    <p className="text-sm text-foreground truncate">
-                      <span className="text-muted-foreground mr-2">{t.id}</span>
-                      {t.subject}
-                    </p>
-                    <p className="text-xs text-muted-foreground">Updated {t.updated}</p>
+                    <p className="text-sm text-foreground truncate">{t.subject}</p>
+                    <p className="text-xs text-muted-foreground">{new Date(t.updated_at).toLocaleString()}</p>
                   </div>
-                  <Badge variant={t.status === "Open" ? "default" : "secondary"}>{t.status}</Badge>
-                </li>
+                  <Badge variant={t.status === "open" ? "default" : "secondary"}>{t.status}</Badge>
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+        {selected && (
+          <div className="space-y-4">
+            <Button size="sm" variant="ghost" onClick={() => setSelected(null)}>
+              ← Back
+            </Button>
+            <div className="space-y-3 max-h-72 overflow-y-auto pr-1">
+              {messages.map((m) => (
+                <div
+                  key={m.id}
+                  className={`rounded-lg p-3 text-sm ${
+                    m.is_staff ? "bg-primary/10 border border-primary/30" : "bg-secondary"
+                  }`}
+                >
+                  <p className="text-xs text-muted-foreground mb-1">
+                    {m.is_staff ? "Staff" : "You"} · {new Date(m.created_at).toLocaleString()}
+                  </p>
+                  <p className="text-foreground whitespace-pre-wrap">{m.body}</p>
+                </div>
               ))}
-            </ul>
-          </Card>
-
-          <Card className="bg-gradient-card border-border p-6 shadow-card">
-            <h3 className="font-semibold text-foreground mb-2">FAQ</h3>
-            <Accordion type="single" collapsible>
-              {faqs.map((f) => (
-                <AccordionItem key={f.q} value={f.q}>
-                  <AccordionTrigger className="text-sm text-left">{f.q}</AccordionTrigger>
-                  <AccordionContent className="text-sm text-muted-foreground">{f.a}</AccordionContent>
-                </AccordionItem>
-              ))}
-            </Accordion>
-          </Card>
-        </div>
-      </div>
+            </div>
+            <form onSubmit={sendReply} className="space-y-2">
+              <Textarea rows={3} value={reply} onChange={(e) => setReply(e.target.value)} placeholder="Type a reply…" />
+              <Button type="submit" className="w-full" disabled={!reply.trim()}>
+                Send Reply
+              </Button>
+            </form>
+          </div>
+        )}
+      </Card>
     </div>
   );
 };
