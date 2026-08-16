@@ -78,7 +78,7 @@ const HeroSection = () => {
           <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold mb-6 leading-tight">
             Protect & Monetize your code
             <br />
-            with <span className="text-gradient-gold">Luarmor</span>
+            with <span className="text-gradient-gold">cat service</span>
           </h1>
           <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-12">
             The standard and go-to solution for protecting, monetizing,
@@ -100,7 +100,7 @@ const HeroSection = () => {
             <div className="h-full bg-gradient-to-br from-card to-background p-4">
               <div className="flex items-center gap-2 mb-4">
                 <div className="w-6 h-6 rounded bg-primary/20" />
-                <span className="text-xs text-muted-foreground">Luarmor</span>
+                <span className="text-xs text-muted-foreground">cat service</span>
                 <div className="ml-auto flex gap-1">
                   <div className="w-8 h-4 rounded bg-primary/30 text-[8px] flex items-center justify-center">6270</div>
                   <div className="w-8 h-4 rounded bg-blue-500/30 text-[8px] flex items-center justify-center">1000</div>

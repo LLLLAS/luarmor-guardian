@@ -41,7 +41,7 @@ const Navbar = () => {
               />
             </svg>
           </div>
-          <span className="text-xl font-bold text-foreground">Luarmor</span>
+          <span className="text-xl font-bold text-foreground">cat service</span>
         </a>
 
         {/* Nav Links */}

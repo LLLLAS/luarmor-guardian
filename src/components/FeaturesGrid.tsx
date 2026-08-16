@@ -6,25 +6,25 @@ const features = [
     icon: Zap,
     title: "Super Fast",
     description:
-      "Luarmor is extremely fast and stable because of its multi-server structure and optimized design that ensures 0% error rate during authentication.",
+      "cat service is extremely fast and stable because of its multi-server structure and optimized design that ensures 0% error rate during authentication.",
   },
   {
     icon: Wrench,
     title: "Easy to Integrate",
     description:
-      "All you have to do is to upload your script to dashboard and that's it. Luarmor will embed the whitelist inside your script and obfuscate it using Luraph™️",
+      "All you have to do is to upload your script to dashboard and that's it. cat service will embed the whitelist inside your script and obfuscate it using Luraph™️",
   },
   {
     icon: Lock,
     title: "Top Security",
     description:
-      "Luarmor utilizes commercial methods to keep your script secure. We write the code that re-writes your code in a secure way.",
+      "cat service utilizes commercial methods to keep your script secure. We write the code that re-writes your code in a secure way.",
   },
   {
     icon: TrendingUp,
     title: "Reliable",
     description:
-      "Our systems operate with 99.9%+ uptime, including script stability. With Luarmor, your users will never have whitelist related errors.",
+      "Our systems operate with 99.9%+ uptime, including script stability. With cat service, your users will never have whitelist related errors.",
   },
 ];
 
@@ -93,7 +93,7 @@ const FeaturesGrid = () => {
               </svg>
             </div>
             <p className="relative z-10 text-muted-foreground text-sm">
-              Luarmor servers on world map above
+              cat service servers on world map above
             </p>
           </div>
         </motion.div>

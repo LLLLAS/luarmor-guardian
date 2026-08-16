@@ -26,7 +26,7 @@ const Footer = () => {
                 />
               </svg>
             </div>
-            <span className="text-lg font-bold">Luarmor</span>
+            <span className="text-lg font-bold">cat service</span>
           </div>
 
           {/* Links */}
@@ -44,7 +44,7 @@ const Footer = () => {
 
           {/* Copyright */}
           <p className="text-sm text-muted-foreground">
-            © 2025 Luarmor. All rights reserved.
+            © 2025 cat service. All rights reserved.
           </p>
         </div>
       </div>

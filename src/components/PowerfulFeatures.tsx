@@ -6,7 +6,7 @@ const features = [
     icon: Bot,
     title: "Discord Bot",
     description:
-      "Luarmor comes with a ready-to-use discord bot with a mini control panel for your users where they can redeem keys, reset HWID and more.",
+      "cat service comes with a ready-to-use discord bot with a mini control panel for your users where they can redeem keys, reset HWID and more.",
   },
   {
     icon: Key,
@@ -30,13 +30,13 @@ const features = [
     icon: Lock,
     title: "Encrypted Backups",
     description:
-      "Luarmor gives you the option to encrypt & store your code just in case you ever lose access to source, or want to revert to an old version.",
+      "cat service gives you the option to encrypt & store your code just in case you ever lose access to source, or want to revert to an old version.",
   },
   {
     icon: DollarSign,
     title: "Ad Key System",
     description:
-      "Luarmor has a built-in, compatible and customizable ad link system with an effective anti-bypass, protecting your revenue.",
+      "cat service has a built-in, compatible and customizable ad link system with an effective anti-bypass, protecting your revenue.",
   },
   {
     icon: KeyRound,
